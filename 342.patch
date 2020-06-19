@@ -1,0 +1,76 @@
+From 328579c381b42ff97deb87297329bff95e25640d Mon Sep 17 00:00:00 2001
+From: Pablo Hinojosa <pablohn6@gmail.com>
+Date: Fri, 20 Sep 2019 05:48:42 +0200
+Subject: [PATCH] Add systemd timer to auto update proxy-multi.conf
+
+I provide steps to create a systemd timer that updates everyday proxy-multi.conf file
+---
+ README.md | 48 +++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/README.md b/README.md
+index 67ca9db..4f39bb0 100644
+--- a/README.md
++++ b/README.md
+@@ -33,7 +33,7 @@ If the build has failed, you should run `make clean` before building it again.
+ ```bash
+ curl -s https://core.telegram.org/getProxySecret -o proxy-secret
+ ```
+-2. Obtain current telegram configuration. It can change (occasionally), so we encourage you to update it once per day.
++2. Obtain current telegram configuration. It can change (occasionally), so we encourage you to update it once per day (see [below](#Timers) ).
+ ```bash
+ curl -s https://core.telegram.org/getProxyConfig -o proxy-multi.conf
+ ```
+@@ -104,6 +104,52 @@ systemctl status MTProxy.service
+ systemctl enable MTProxy.service
+ ```
+ 
++### Timers
++
++This provides automatic proxy-multi.conf file update everyday
++
++1. Create and edit systemd service file (especially path of proxy-multi.conf file):
++```bash
++nano /etc/systemd/system/MTProxy-multiUpdater.service
++```
++
++```bash
++[Unit]
++Description=Update MTPRoxy proxy-multi.conf file
++
++[Service]
++Type=oneshot
++ExecStart=/usr/bin/curl -s https://core.telegram.org/getProxyConfig -o /opt/MTProxy/proxy-multi.conf
++```
++2. Add the timer (this example runs above service everyday at 4AM)
++```bash
++nano /etc/systemd/system/MTProxy-multiUpdater.service
++```
++
++```bash
++[Unit]
++Description=MTProxy-multiUpdater timer
++
++[Timer]
++OnCalendar=*-*-* 4:00:00
++Persistent=true
++
++[Install]
++WantedBy=timers.target
++```
++3. Reload daemons:
++```bash
++systemctl daemon-reload
++```
++4. Enable timer
++```bash
++systemctl enable MTProxy-multiUpdater.timer
++```
++5. Check timer is properly set up
++```bash
++systemctl list-timers
++```
++
+ ## Docker image
+ Telegram is also providing [official Docker image](https://hub.docker.com/r/telegrammessenger/proxy/).
+ Note: the image is outdated.
